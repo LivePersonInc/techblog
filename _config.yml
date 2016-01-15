@@ -1,0 +1,16 @@
+name: LP Tech Blog
+description:
+meta_description: "LP Tech Blog"
+
+markdown: redcarpet
+highlighter: pygments
+permalink: /:title.html
+logo: false
+paginate: 15
+baseurl: /
+domain_name: 'http://livepersoninc.github.io/techblog'
+comments: true
+
+# Details for the RSS feed generator
+url:            'http://livepersoninc.github.io/techblog'
+author:         'LivePerson developers'
