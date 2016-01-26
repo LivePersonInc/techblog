@@ -63,27 +63,28 @@ post_class: post-template
         {% endif %}
 
         <footer class="post-footer">
-            <!-- If we want to display author's name and bio -->
-            {% if post.author %}
-                <figure class="author-image">
-                    <a class="img" href="{{ site.baseurl }}" style="background-image: url(assets/images/profile.png)">
-                    <span class="hidden">{{site.author}}'s Picture</span></a>
-                </figure>
-                <section class="author">
-                    <!-- Author Name -->
-                    <h4> {{ post.author }} </h4>
-                    <!-- Author Bio -->
-                    <p> 
-                        <!--Cute little kitten!-->
-                    </p>
-                </section>                
-            {% endif %}
-
             <!-- Share links section -->
             {% include share.html %}
-            
+
+            <!--&lt;!&ndash; If we want to display author's name and bio &ndash;&gt;-->
+            <!--{% if post.author %}-->
+                <!--<figure class="author-image">-->
+                    <!--<a class="img" href="{{ site.baseurl }}" style="background-image: url(assets/images/profile.png)">-->
+                    <!--<span class="hidden">{{site.author}}'s Picture</span></a>-->
+                <!--</figure>-->
+                <!--<section class="author">-->
+                    <!--&lt;!&ndash; Author Name &ndash;&gt;-->
+                    <!--<h4> {{ post.author }} </h4>-->
+                    <!--&lt;!&ndash; Author Bio &ndash;&gt;-->
+                    <!--<p> -->
+                        <!--&lt;!&ndash;Cute little kitten!&ndash;&gt;-->
+                    <!--</p>-->
+                <!--</section>                -->
+            <!--{% endif %}-->
+
+
             <!-- Disqus comments -->
-            <!--{% include disqus.html %}-->
+            {% include disqus.html %}
 
         </footer>
 
