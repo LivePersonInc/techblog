@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Containers adoption pathway - Part 1"
-date:   2015-12-18 22:18:00
+date:   2016-01-26 22:18:00
 categories: software-development,architecture,design
 comments: true
 published: true
