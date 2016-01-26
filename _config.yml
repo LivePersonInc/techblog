@@ -7,7 +7,7 @@ highlighter: pygments
 permalink: /:title.html
 logo: false
 paginate: 15
-baseurl: http://livepersoninc.github.io/techblog
+baseurl: /techblog
 domain_name: 'livepersoninc.github.io'
 port: 4001
 comments: true
