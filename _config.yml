@@ -1,6 +1,6 @@
-name: LP Tech Blog
+name: LivePerson's Tech Blog
 description:
-meta_description: "LP Tech Blog"
+meta_description: "LivePerson's Tech Blog"
 
 markdown: redcarpet
 highlighter: pygments
