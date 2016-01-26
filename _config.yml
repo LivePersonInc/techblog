@@ -7,8 +7,9 @@ highlighter: pygments
 permalink: /:title.html
 logo: false
 paginate: 15
-baseurl: /
-domain_name: 'http://livepersoninc.github.io/techblog'
+baseurl: http://livepersoninc.github.io/techblog
+domain_name: 'livepersoninc.github.io'
+port: 4001
 comments: true
 
 # Details for the RSS feed generator
