@@ -8,7 +8,7 @@ permalink: /:title.html
 logo: false
 paginate: 15
 baseurl: /techblog
-domain_name: 'livepersoninc.github.io'
+domain_name: 'http://livepersoninc.github.io'
 port: 4001
 comments: true
 
