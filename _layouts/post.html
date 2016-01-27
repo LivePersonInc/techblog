@@ -21,7 +21,6 @@ post_class: post-template
             <section class="post-meta">
                 <time class="post-date" datetime="{{ page.date | date:"%Y-%m-%d" }}">{{ page.date | date_to_string }}</time>
                 {% if post.author %}
-                    <img class="author-thumb" src="{{ site.baseurl }}/assets/images/profile.png" alt="Author's profile picture" nopin="nopin" />
                     {{ post.author }}
                 {% endif %}
                 {% if page.categories.size > 0 %}
