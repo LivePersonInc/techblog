@@ -55,7 +55,17 @@ post_class: post-template
             <ul>
                 {% for post in site.posts %}
                     {% if post.published %}
-                        <li><span>{{ post.date | date_to_string }}</span>  <a href="{{ site.baseurl }}/{{ post.url }}">{{ post.title }}</a></li>
+                        {% if post.author %}
+                        <img class="author-thumb" src="{{ site.baseurl }}/assets/images/profile.png" alt="Author's profile picture" nopin="nopin" />
+                        {{ post.author }}
+                        {% endif %}
+                        {% if post.categories.size > 0 %}
+                        {{ post.categories | array_to_sentence_string | prepend: 'on ' }}
+                        {% endif %}
+                        <time class="post-date" datetime="{{ post.date | date:"%Y-%m-%d" }}">
+                        {{ post.date | date_to_string }}
+                        </time>
+                <!--<li><span>{{ post.date | date_to_string }}</span>  <a href="{{ site.baseurl }}/{{ post.url }}">{{ post.title }}</a></li>-->
                     {% endif %}
                 {% endfor %}    
             </ul>
