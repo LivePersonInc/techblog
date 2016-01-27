@@ -30,3 +30,4 @@ A bad reason for adopting containers  would be because you think it's going to i
 <img src="https://docs.google.com/drawings/d/1Tfe2a9z_AFwHv0oZuxbVJg7KhA2-UYHdHR6hA94LiO0/pub?w=570&amp;h=286">
 
 
+.
