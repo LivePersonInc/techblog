@@ -19,15 +19,16 @@ post_class: post-template
         <header class="post-header">
             <h1 class="post-title">{{ page.title }}</h1>
             <section class="post-meta">
-                {% if post.author %}
+                <time class="post-date" datetime="{{ page.date | date:"%Y-%m-%d" }}">{{ page.date | date_to_string }}</time>
+                {% if page.author %}
                     <img class="author-thumb" src="{{ site.baseurl }}/assets/images/profile.png" alt="Author's profile picture" nopin="nopin" />
-                    {{ post.author }}
+                    {{ page.author }}
                 {% endif %}
-                {% if post.categories.size > 0 %}
-                    {{ post.categories | array_to_sentence_string | prepend: 'on ' }}
+                {% if page.categories.size > 0 %}
+                    {{ page.categories | array_to_sentence_string | prepend: 'on ' }}
                 {% endif %}
-                <time class="post-date" datetime="{{ post.date | date:"%Y-%m-%d" }}">
-                    {{ post.date | date_to_string }}
+                <time class="post-date" datetime="{{ page.date | date:"%Y-%m-%d" }}">
+                {{ page.date | date_to_string }}
                 </time>
             </section>
         </header>
