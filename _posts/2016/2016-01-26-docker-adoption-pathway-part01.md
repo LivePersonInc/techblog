@@ -6,7 +6,7 @@ categories: software-development,architecture,design
 comments: true
 author: Tomer Ben-David
 published: true
-test1: 1
+test1: 2
 ---
 Considering `docker` adoption in your organization? There are many aspects to consider.  As we are going through this evaluation process in LivePerson, we thought it would be beneficial if we share some of our insights on this process.  Any way you look at such an infrastructure change it has a huge impact on developers, CI, CD, configuration, monitoring, packaging, security and almost any aspect of software development and delivery.  You should be going through a path of inspecting each step finding your best practices, forming the skeleton projects and templates which would help solution reuse when converting new projects.  The challenge of integrating it into existing services with existing deployment tools is not something to be taken lightly.  So, if you are before that process, or even in the midst of it I hope you find our insights helpful.  
 
