@@ -19,37 +19,27 @@ post_class: post-template
         <header class="post-header">
             <h1 class="post-title">{{ page.title }}</h1>
             <section class="post-meta">
-                {% if post.author %}
-                    <img class="author-thumb" src="{{ site.baseurl }}/assets/images/profile.png" alt="Author's profile picture" nopin="nopin" />
-                    {{ post.author }}
+                <time class="post-date" datetime="{{ page.date | date:"%Y-%m-%d" }}">{{ page.date | date_to_string }}</time>
+                {% if page.categories.size > 0 %}
+                {{ page.categories | array_to_sentence_string | prepend: 'on ' }}
                 {% endif %}
-                {% if post.categories.size > 0 %}
-                    {{ post.categories | array_to_sentence_string | prepend: 'on ' }}
-                {% endif %}
-                    <time class="post-date" datetime="{{ post.date | date:"%Y-%m-%d" }}">
-                {{ post.date | date_to_string }}
-                </time>
-                <!--<time class="post-date" datetime="{{ page.date | date:"%Y-%m-%d" }}">{{ page.date | date_to_string }}</time>-->
-                <!--{% if page.categories.size > 0 %} -->
-                    <!--{{ page.categories | array_to_sentence_string | prepend: 'on ' }} -->
-                <!--{% endif %}-->
             </section>
         </header>
 
-<!--         <header class="post-header">
-            <a id="blog-logo" href="{{site.url}}">
-                {% if site.logo %}
-                    <img src="{{site.logo}}" alt="{{ site.name }}" />
-                {% else %}
-                    <span class="blog-title">{{ site.name }}</span>
-                {%endif%} 
-            </a>
-        </header> -->
-        
+        <!--         <header class="post-header">
+                    <a id="blog-logo" href="{{site.url}}">
+                        {% if site.logo %}
+                            <img src="{{site.logo}}" alt="{{ site.name }}" />
+                        {% else %}
+                            <span class="blog-title">{{ site.name }}</span>
+                        {%endif%}
+                    </a>
+                </header> -->
+
         <!-- <span class="post-meta">
             <time datetime="{{ page.date | date:"%Y-%m-%d" }}">{{ page.date | date_to_string }}</time>
-            {% if page.categories.size > 0 %} 
-                {{ page.categories | array_to_sentence_string | prepend: 'on ' }} 
+            {% if page.categories.size > 0 %}
+                {{ page.categories | array_to_sentence_string | prepend: 'on ' }}
             {% endif %}
         </span> -->
 
@@ -80,18 +70,18 @@ post_class: post-template
 
             <!--&lt;!&ndash; If we want to display author's name and bio &ndash;&gt;-->
             <!--{% if post.author %}-->
-                <!--<figure class="author-image">-->
-                    <!--<a class="img" href="{{ site.baseurl }}" style="background-image: url(assets/images/profile.png)">-->
-                    <!--<span class="hidden">{{site.author}}'s Picture</span></a>-->
-                <!--</figure>-->
-                <!--<section class="author">-->
-                    <!--&lt;!&ndash; Author Name &ndash;&gt;-->
-                    <!--<h4> {{ post.author }} </h4>-->
-                    <!--&lt;!&ndash; Author Bio &ndash;&gt;-->
-                    <!--<p> -->
-                        <!--&lt;!&ndash;Cute little kitten!&ndash;&gt;-->
-                    <!--</p>-->
-                <!--</section>                -->
+            <!--<figure class="author-image">-->
+            <!--<a class="img" href="{{ site.baseurl }}" style="background-image: url(assets/images/profile.png)">-->
+            <!--<span class="hidden">{{site.author}}'s Picture</span></a>-->
+            <!--</figure>-->
+            <!--<section class="author">-->
+            <!--&lt;!&ndash; Author Name &ndash;&gt;-->
+            <!--<h4> {{ post.author }} </h4>-->
+            <!--&lt;!&ndash; Author Bio &ndash;&gt;-->
+            <!--<p> -->
+            <!--&lt;!&ndash;Cute little kitten!&ndash;&gt;-->
+            <!--</p>-->
+            <!--</section>                -->
             <!--{% endif %}-->
 
 
