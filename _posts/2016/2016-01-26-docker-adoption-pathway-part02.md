@@ -9,7 +9,32 @@ published: false
 ---
 # Docker adoption pathway - Part 2
 
-**troubleshooting** Troubleshooting changes drastically.  If by now you were used to troubleshooting your servers by checking out graphs in your favorite monitoring tool, and in more difficult cases accessing your servers and running various commands to check its health, web pages or `jmx` on specific hosts to check its status then now you basically have a few things you need to change.  First and foremost the machine names, you are not working with machines but you need to locate your containers via your orchestrator, be it for example `kubernetes` or `fleet`.  `kubernetes` services take care of exposing ports which are used to access your server as a business logic unit, but what about accessing ports on your specific app node? if a server which runs `jconsole` is out of the cluster you would need to expose the ports to it.  What about running utilities on the container to check it's status.  Let's take for example `tcpdump`.    
+**troubleshooting** Troubleshooting changes drastically.  If by now you were used to troubleshooting your servers by checking out graphs in your favorite monitoring tool, and in more difficult cases accessing your servers and running various commands to check its health, web pages or `jmx` on specific hosts to check its status then now you basically have a few things you need to change.  First and foremost the machine names, you are not working with machines but you need to locate your containers via your orchestrator, be it for example `kubernetes` or `fleet`.  `kubernetes` services take care of exposing ports which are used to access your server as a business logic unit, but what about accessing ports on your specific app node? if a server which runs `jconsole` is out of the cluster you would need to expose the ports to it.  What about running utilities on the container to check it's status.  Let's take for example `tcpdump`.  We are going to use a `dockerized cassandra` as an example and sniff on its communication with `tcpdump`.
+    
+Let's first start up a `dockerized cassandra container`.
+
+```bash
+$ docker run --name containerized-cassandra -d cassandra 
+91523e6a1e34f52e89993ae75821633a92b2528c5e0f551983a9518f7044d286
+```
+
+Access the container with shell:
+
+```bash
+$ docker exec -it containerized-cassandra bash
+root@91523e6a1e34:/#
+```
+
+and execute our favorite network analysis tool - `tcpdump`
+
+```bash
+# tcpdump
+bash: tcpdump: command not found
+```
+
+Only to find we don't have any `tcpdump` in our `container`.
+
+What can we learn from this - troubleshooting is different in containerized environments.
 
 It is most likely that you are not going to have troubleshooting tools such as `lsof` and `tcpdump` in your container.
 
