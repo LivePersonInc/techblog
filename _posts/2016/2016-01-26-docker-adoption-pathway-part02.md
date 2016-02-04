@@ -5,7 +5,7 @@ date:   2016-01-26 22:18:00
 categories: software-development,architecture,design
 comments: true
 author: Tomer Ben-David
-published: false
+published: true
 ---
 # Docker adoption pathway - Part 2
 
