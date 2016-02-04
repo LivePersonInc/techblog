@@ -3,7 +3,7 @@ description:
 meta_description: "LivePerson's Tech Blog"
 
 markdown: redcarpet
-highlighter: pygments
+highlighter: rouge
 permalink: /:title.html
 logo: false
 paginate: 15
