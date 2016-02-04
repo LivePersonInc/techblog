@@ -32,11 +32,24 @@ and execute our favorite network analysis tool - `tcpdump`
 bash: tcpdump: command not found
 ```
 
-Only to find we don't have any `tcpdump` in our `container`.
+for the sake of the case let's use another very common troubleshooting unix command `lsof`.
 
-What can we learn from this - troubleshooting is different in containerized environments.
+```bash
+# lsof
+bash: lsof: command not found
+```
 
-It is most likely that you are not going to have troubleshooting tools such as `lsof` and `tcpdump` in your container.
+So we don't have any `tcpdump` nor `lsof` in our `container`.  While it is expected it actually means to us - troubleshooting is different in containerized environments.
+
+So if we wish to use one of the above commands what should be our path, there are multiple ones, lets check our options and choose what we think suits best this problem, our options:
+
+1. Troubleshoot the container `externally`.  Run the commands from the `node` itself.
+1. Use another container perhaps a `troubleshooting container` which would have access to our `app` container and we are going to run the commands from within it.
+1. Install the `troubleshooting` commands inside our `app` container - this is a path we are not going to take as it stands in opposite to container methodology.
+1. Use new abstractions for troubleshooting for example docker has `docker top` command so you can run externally to the container `docker top containerized-cassandra`.
+1. Use 3rd party tools which allow greater visibility into your containers.
+
+For our `tcpdump` command our favorite method would be to stat a new container containing `tcpdump` and use it to analyze the network traffic.
 
 
 
