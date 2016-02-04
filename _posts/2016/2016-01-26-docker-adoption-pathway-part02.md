@@ -44,14 +44,19 @@ So we don't have any `tcpdump` nor `lsof` in our `container`.  While it is expec
 So if we wish to use one of the above commands what should be our path, there are multiple ones, lets check our options and choose what we think suits best this problem, our options:
 
 1. Troubleshoot the container `externally`.  Run the commands from the `node` itself.
-1. Use another container perhaps a `troubleshooting container` which would have access to our `app` container and we are going to run the commands from within it.
+1. Use another container perhaps a `troubleshooting container`.
 1. Install the `troubleshooting` commands inside our `app` container - this is a path we are not going to take as it stands in opposite to container methodology.
 1. Use new abstractions for troubleshooting for example docker has `docker top` command so you can run externally to the container `docker top containerized-cassandra`.
 1. Use 3rd party tools which allow greater visibility into your containers.
 
-For our `tcpdump` command our favorite method would be to stat a new container containing `tcpdump` and use it to analyze the network traffic.
+We first search for standards, as we don't have yet a `docker tcpdump` then our second best option is to run to stat a new container running `tcpdump` and use it to analyze the network traffic.
 
-
+```bash
+$ docker run --net=host --rm corfr/tcpdump -iveth9258f66 port 7000
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on veth9258f66, link-type EN10MB (Ethernet), capture size 65535 bytes
+22:02:43.063875 IP 172.17.0.2.53094 > 172.17.0.3.afs3-fileserver: Flags [P.], seq 2575582772:2575582908, ack 3499689297, win 229, options [nop,nop,TS val 2370991 ecr 2370807], length 136
+```
 
 **App and deployment types** You must be having many flavours of servers.  You must be having http style servers, but do you have also storm topologies? hadoop jobs? spark? spark streaming? `vert.x`? databases? which flavours? That means you should cosinder which server types are your candidates for `docker` adoption.  Usually you wish to start with plain servers, `web/app` servers as opposed to converting any kind of `databases` or servers which are not in frequent development and deployment.  Also in most cases you would need to scale up and down your `web/app` servers, so again this makes them a good candidate, In addition those server's are almost completely in your control, so again it makes sense to start with these servers.  Among these you would first want to `POC` a few or a single non critical service, it's best that your first `POC` contains a server which if it's down no harm done.  do a full `docker` adotpion on it and test it.  Once you feel comfort and you have formed procedures and templates for `docker` adoption you may continue gradually to servers with higher criticallity and with stricter `SLA`.  Do you already use `YARN`, `Mesos`? What about spontaneous command run like `tcpdump` do you also consider them as `apps`? (hint: yes).  This means you need to take into consideration a heterogenous production system and see how docker would fit it.  Also as you consider `docker` you probably already consider using `kubernetes` (hint: yes), This has to philarmon all together.
 
