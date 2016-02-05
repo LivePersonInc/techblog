@@ -9,13 +9,29 @@ published: false
 ---
 # Docker adoption pathway - Part 2
 
-**troubleshooting** Troubleshooting changes drastically.  If by now you were used to troubleshooting your servers by checking out graphs in your favorite monitoring tool, and in more difficult cases accessing your servers and running various commands to check its health, web pages or `jmx` on specific hosts to check its status then now you basically have a few things you need to change.  First and foremost the machine names, you are not working with machines but you need to locate your containers via your orchestrator, be it for example `kubernetes` or `fleet`.  `kubernetes` services take care of exposing ports which are used to access your server as a business logic unit, but what about accessing ports on your specific app node? if a server which runs `jconsole` is out of the cluster you would need to expose the ports to it.  What about running utilities on the container to check it's status.  Let's take for example `tcpdump`.  We are going to use a `dockerized cassandra` as an example and sniff on its communication with `tcpdump`.
+In part 1 we went through the motivation to adopt `containerized deployments` some of it's effect on deployment tools.  To remind, having a new service in a new company containerized is a lot differnet from having an existing or even new service containerized when you already have deployment tools and monitoring in place.  You have to do a shift.  Let's check which aspects need to be reexamined while doing this move, in this part we are going to see through troublehooting in containerized environments versus standard ones, the different app types we might have, which ones are good candidates for containerization and service discovery. 
+
+**troubleshooting** Troubleshooting changes drastically.  You might have been used to troubleshooting your servers by checking out graphs in your favorite monitoring tool.  In cases where it required you would access your servers and run various commands to check its health (`uptime`, `ps`, `lsof`, `tcpdump`, `dmesg`, `sar`, and more troubleshooting assistant commands).  Many times there are web pages on the `app` instances themselves and-or `jmx` exposed on jvm based `apps` to check the status of the app and the machine.  When you have your app `containerized` things change.  First and foremost the machine names, you are not working with machines but you need to locate your containers via your `orchestrator`, be it `kubernetes` or `fleet` or other orchestration tools.  With regards to having the web pages or jmx exposed `kubernetes` services take care of exposing ports which are used to access your server as a business logic unit, but what about accessing ports on your specific app node? if a server which runs `jconsole` is out of the cluster you would need to expose the ports to it.  What about running utilities on the container to check it's status.  Let's take for example `tcpdump`.  We are going to use a `containerized cassandra` as an example and see that we have access to it's network packets with `tcpdump`.
     
 Let's first start up a `dockerized cassandra container`.
 
 ```bash
 $ docker run --name containerized-cassandra -d cassandra 
 91523e6a1e34f52e89993ae75821633a92b2528c5e0f551983a9518f7044d286
+```
+
+Let's start a second cassandra container which would result in having it in a cluster with the first:
+```bash
+docker run --name containerized-cssandra2 -d -e CASSANDRA_SEEDS="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' containerized-cassandra)" cassandra:latest
+```
+
+Let's verify both of them are running:
+
+```bash
+$ docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                         NAMES
+34950087146a        cassandra:latest    "/docker-entrypoint.s"   12 minutes ago        Up 4 seconds        7000-7001/tcp, 7199/tcp, 9042/tcp, 9160/tcp   containerized-cssandra2
+91523e6a1e34        cassandra           "/docker-entrypoint.s"   10 minutes ago        Up 12 seconds       7000-7001/tcp, 7199/tcp, 9042/tcp, 9160/tcp   containerized-cassandra
 ```
 
 Access the container with shell:
@@ -39,17 +55,17 @@ for the sake of the case let's use another very common troubleshooting unix comm
 bash: lsof: command not found
 ```
 
-So we don't have any `tcpdump` nor `lsof` in our `container`.  While it is expected it actually means to us - troubleshooting is different in containerized environments.
+So we don't have any `tcpdump` nor `lsof` in our `container`.  While it is expected it actually means to us - troubleshooting is different - in containerized environments.
 
-So if we wish to use one of the above commands what should be our path, there are multiple ones, lets check our options and choose what we think suits best this problem, our options:
+So if we wish to use one of the above commands what should be our path, there are multiple ones, lets check our options and choose what we think suits best this problem.  Our options:
 
 1. Troubleshoot the container `externally`.  Run the commands from the `node` itself.
-1. Use another container perhaps a `troubleshooting container`.
-1. Install the `troubleshooting` commands inside our `app` container - this is a path we are not going to take as it stands in opposite to container methodology.
+1. Use another container perhaps a `troubleshooting container` to run the commands.
+1. Install the `troubleshooting` commands inside our `app` container.
 1. Use new abstractions for troubleshooting for example docker has `docker top` command so you can run externally to the container `docker top containerized-cassandra`.
 1. Use 3rd party tools which allow greater visibility into your containers.
 
-We first search for standards, as we don't have yet a `docker tcpdump` then our second best option is to run to stat a new container running `tcpdump` and use it to analyze the network traffic.
+As always we first see if we have standards, as we don't have any `docker tcpdump` obviously then our second best option we have opted for is to run to stat a new container running `tcpdump` and use it to analyze the network traffic.
 
 ```bash
 $ docker run --net=host --rm corfr/tcpdump -iveth9258f66 port 7000
