@@ -75,12 +75,33 @@ As always we first see if we have standards, as we obviously don't have any `doc
 $ docker run --net=host --rm corfr/tcpdump -iveth9258f66 port 7000
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on veth9258f66, link-type EN10MB (Ethernet), capture size 65535 bytes
-22:02:43.063875 IP 172.17.0.2.53094 > 172.17.0.3.afs3-fileserver: Flags [P.], seq 2575582772:2575582908, ack 3499689297, win 229, options [nop,nop,TS val 2370991 ecr 2370807], length 136
+22:02:43.063875 IP 172.17.0.2.53094 > 172.17.0.3.afss3-fileserver: Flags [P.], seq 2575582772:2575582908, ack 3499689297, win 229, options [nop,nop,TS val 2370991 ecr 2370807], length 136
 ```
 
+Let's connect to the jmx so we start `jvisualvm` and we try to connect to its jmx, we are going to use [jmxterm](http://wiki.cyclopsgroup.org/jmxterm/) in order to do that from the `commandline`
 `cassandra` exposes jmx, according to it's documentation it's on port: [7199 - Cassandra JMX monitoring port.](https://docs.datastax.com/en/cassandra/2.0/cassandra/security/secureFireWall_r.html)
 
-while `cassanra's Dockerfile` `exposes` this port as we can see from it's `Dockerfile`:
+```bash
+$ java -jar ~/Downloads/jmxterm-1.0-alpha-4-uber.jar  --url localhost:7199
+```
+
+which results with:
+
+```bash
+java.io.IOException: Failed to retrieve RMIServer stub: javax.naming.ServiceUnavailableException [Root exception is java.rmi.ConnectException: Connection refused to host: localhost; nested exception is: 
+	java.net.ConnectException: Connection refused]
+```
+
+let's check with `telnet` if we have any connection to our `cassandra` via `jmx`:
+
+```bash
+telnet localhost 7199
+:~/tmp/java-docker$ telnet localhost 7199
+Trying 127.0.0.1...
+telnet: Unable to connect to remote host: Connection refused
+```
+
+no connection, that is because while `cassanra's Dockerfile` `exposes` this port as we can see from it's `Dockerfile`:
 
 ```Dockerfile
 # 7000: intra-node communication
