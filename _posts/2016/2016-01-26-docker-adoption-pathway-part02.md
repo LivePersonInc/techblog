@@ -137,6 +137,70 @@ Connected to localhost.
 Escape character is '^]'.
 ```
 
+now we try again with `jmxterm`:
+
+```bash
+java.io.IOException: Failed to retrieve RMIServer stub: javax.naming.CommunicationException [Root exception is java.rmi.ConnectIOException: error during JRMP connection establishment; nested exception is: 
+	java.net.SocketException: Connection reset]
+```
+
+We have `connection reset`.  So before we got `connection refused` because no port was exposed at all and now `connection reset`.  Let's login to the image and try to understa why this happens:
+
+```bash
+$ docker exec -it containerized-cassandra bash
+```
+
+Let's find the startup script to cassnadra and see where it configures `jmx`:
+
+```bash
+root@104f281f5f09:/# grep cassandra /etc/init.d/cassandra
+# Provides:          cassandra
+NAME=cassandra
+CONFDIR=/etc/cassandra
+CASSANDRA_HOME=/usr/share/cassandra
+[ -e /usr/share/cassandra/apache-cassandra.jar ] || exit 0
+[ -e /etc/cassandra/cassandra.yaml ] || exit 0
+[ -e /etc/cassandra/cassandra-env.sh ] || exit 0
+CMD_PATT="Dcassandra-pidfile=.*cassandra\.pid"
+```
+
+we see that casssandra has a `cassandra-env.sh` it's used to configure the cassandra instance started lets look at it and see how it configures the `jmx`:
+
+```bash
+root@104f281f5f09:/# more /etc/cassandra/cassandra-env.sh
+```
+
+and we find this interesting piece:
+
+```bash
+if [ "$LOCAL_JMX" = "yes" ]; then
+  JVM_OPTS="$JVM_OPTS -Dcassandra.jmx.local.port=$JMX_PORT -XX:+DisableExplicitGC"
+else
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT"
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.rmi.port=$JMX_PORT"
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl=false"
+```
+
+so if we do `ps -ef | grep cassandra` we find that we have `-Dcassandra.jmx.local.port=7199` which means we are using the `local.port` and not setting the `com.sun.management.jmxremote.rmi.port` therefore we are going to change `LOCAL_JMX` to `no`.
+
+**we need to change the example to tomcat so that we don't have the jmxremote.rmi.port by default on!**
+
+```bash
+# jmx: metrics and administration interface
+#
+# add this if you're having trouble connecting:
+# JVM_OPTS="$JVM_OPTS -Djava.rmi.server.hostname=<public name>"
+#
+```
+
+We are going to update therefore cassandra port to constant for this example lets do it directly on the `cassandra image`:
+
+```bash
+root@104f281f5f09:/usr/share# apt-get install -y vim
+root@104f281f5f09:/usr/share# vi /etc/cassandra/cassandra-env.sh
+```
+
+
 **Which apps to first convert** 
 
 You must be having many `app` flavours wuth the most common `http` and `websocket` style services; but, do you have also `storm topologies`, `samza cluster`? `hadoop` jobs? `spark streaming`? `spark jobs?` `vert.x` server? `nodejs`? `nginx`? `databases servers`, there are many flavours.  That means you should consider which server types are your candidates for `container` adoption or at least which are the first.  Usually you wish to start with plain services servers, `http` and `websocket` services, stateless as possible, no disk cache, no affinity, and the least changing configuration that is as opposed to converting any kind of `databases` or `job` like processes.  Also, this would give you an immediate benefit of autoscaling your `web/app` services, so again this makes them good candidates.  In addition those server's behaviour are mostly managed by you, there is no external cluster scheduler for them, as opposed to servers which already have scheduling built in, so again it makes sense to start with these services.  Among these the path to gradually convert is that it's possible to first `POC` a few or a single non critical service, one which if its down not too much harm done, it's best that your first `POC` contains a server which if it's down no harm done.  do a full `docker` adotpion on it and test it.  Once you feel comfort and you have formed procedures and templates for `docker` adoption you may continue gradually to servers with higher criticallity and with stricter `SLA`.  Do you already use `YARN`, `Mesos`? What about spontaneous command run like `tcpdump` do you also consider them as `apps`? (hint: yes).  This means you need to take into consideration a heterogenous production system and see how docker would fit it.  Also as you consider `docker` you probably already consider using `kubernetes` (hint: yes), This has to philarmon all together.
