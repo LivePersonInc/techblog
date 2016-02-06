@@ -78,6 +78,44 @@ listening on veth9258f66, link-type EN10MB (Ethernet), capture size 65535 bytes
 22:02:43.063875 IP 172.17.0.2.53094 > 172.17.0.3.afs3-fileserver: Flags [P.], seq 2575582772:2575582908, ack 3499689297, win 229, options [nop,nop,TS val 2370991 ecr 2370807], length 136
 ```
 
+`cassandra` exposes jmx, according to it's documentation it's on port: [7199 - Cassandra JMX monitoring port.](https://docs.datastax.com/en/cassandra/2.0/cassandra/security/secureFireWall_r.html)
+
+while `cassanra's Dockerfile` `exposes` this port as we can see from it's `Dockerfile`:
+
+```Dockerfile
+# 7000: intra-node communication
+# 7001: TLS intra-node communication
+# 7199: JMX
+# 9042: CQL
+# 9160: thrift service
+EXPOSE 7000 7001 7199 9042 9160
+```
+ 
+it is not going to be exposed to an `unlinked container` or to our `visualvm/jconsole` from outside the container environment.  For that purpose when we `run` the `cassandra container` we are going to use the `-p` option in order to `expose` that port also on the `node` itself.  So our `docker run` command is going to be:
+
+```bash
+docker run --name containerized-cassandra -p 7199:7199 -d cassandra
+```
+
+and when we do `docker ps` we can verify that that port was exposed:
+
+```bash
+$ docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                                       NAMES
+11b499d74c4e        cassandra           "/docker-entrypoint.s"   25 seconds ago      Up 24 seconds       7000-7001/tcp, 9042/tcp, 0.0.0.0:7199->7199/tcp, 9160/tcp   containerized-cassandra
+```
+
+You see that the only port exposed is the jmx port: `0.0.0.0:7199->7199/tcp`
+
+So now if we check if that port is exposed we see that it is:
+
+```bash
+$ telnet localhost 7199
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+```
+
 **Which apps to first convert** 
 
 You must be having many `app` flavours wuth the most common `http` and `websocket` style services; but, do you have also `storm topologies`, `samza cluster`? `hadoop` jobs? `spark streaming`? `spark jobs?` `vert.x` server? `nodejs`? `nginx`? `databases servers`, there are many flavours.  That means you should consider which server types are your candidates for `container` adoption or at least which are the first.  Usually you wish to start with plain services servers, `http` and `websocket` services, stateless as possible, no disk cache, no affinity, and the least changing configuration that is as opposed to converting any kind of `databases` or `job` like processes.  Also, this would give you an immediate benefit of autoscaling your `web/app` services, so again this makes them good candidates.  In addition those server's behaviour are mostly managed by you, there is no external cluster scheduler for them, as opposed to servers which already have scheduling built in, so again it makes sense to start with these services.  Among these the path to gradually convert is that it's possible to first `POC` a few or a single non critical service, one which if its down not too much harm done, it's best that your first `POC` contains a server which if it's down no harm done.  do a full `docker` adotpion on it and test it.  Once you feel comfort and you have formed procedures and templates for `docker` adoption you may continue gradually to servers with higher criticallity and with stricter `SLA`.  Do you already use `YARN`, `Mesos`? What about spontaneous command run like `tcpdump` do you also consider them as `apps`? (hint: yes).  This means you need to take into consideration a heterogenous production system and see how docker would fit it.  Also as you consider `docker` you probably already consider using `kubernetes` (hint: yes), This has to philarmon all together.
