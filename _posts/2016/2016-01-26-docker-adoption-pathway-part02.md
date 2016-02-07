@@ -181,7 +181,7 @@ else
   JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl=false"
 ```
 
-so if we do `ps -ef | grep cassandra` we find that we have `-Dcassandra.jmx.local.port=7199` which means we are using the `local.port` and not setting the `com.sun.management.jmxremote.rmi.port` therefore we are going to change `LOCAL_JMX` to `no` by means of passing an environment varialbe to our cassandra docker image.
+so if we do `ps -ef | grep cassandra` we find that we have `-Dcassandra.jmx.local.port=7199` which means we are using the `local.port` and not setting the `com.sun.management.jmxremote.rmi.port` which means that `LOCAL_JMX` is `yes`.  therefore we are going to change `LOCAL_JMX` to `no` by means of passing an environment variable to our cassandra docker image.
 
 ```bash
 $ docker run --rm --name containerized-cassandra -p 7199:7199 -e LOCAL_JMX='no' cassandra
@@ -210,27 +210,84 @@ There are multiple paths here to take:
 
 While the `LDAP` service is our favorite option, and while this is a repeating theme, local changes are moving to the network, for this example we are going to create our own image and add to it the `jmxremote.password` file.
 
+We create a new `jmxremote.password`:
+
+```bash
+controlRole somepass
+```
+
 Our `Dockerfile` would look as following:
 
-
-
-so we should just update to use the `jmxremote`, lets do it:
-
 ```bash
-# jmx: metrics and administration interface
-#
-# add this if you're having trouble connecting:
-# JVM_OPTS="$JVM_OPTS -Djava.rmi.server.hostname=<public name>"
-#
+FROM cassandra
+COPY jmxremote.password /etc/cassandra/
 ```
 
-We are going to update therefore cassandra port to constant for this example lets do it directly on the `cassandra image`:
+build it:
 
 ```bash
-root@104f281f5f09:/usr/share# apt-get install -y vim
-root@104f281f5f09:/usr/share# vi /etc/cassandra/cassandra-env.sh
+$ docker build -t "mycassandra" .
+
+Sending build context to Docker daemon 3.072 kB
+Step 1 : FROM cassandra
+ ---> 368a7c448425
+Step 2 : COPY jmxremote.password /etc/cassandra
+ ---> 73a3a757047e
+Removing intermediate container ce8cf319d160
+Successfully built 73a3a757047e
 ```
 
+Run it with `LOCAL_JMX=no`
+
+```bash
+$ docker run --rm --name containerized-cassandra -p 7199:7199 -e LOCAL_JMX='no' cassandra
+tomerb@TOMERBD_LAP:~/lpdev/social/techblog/_posts/2016/docker-adoption-pathway-part02$ docker run --rm --name containerized-cassandra -p 7199:7199 -e LOCAL_JMX='no' mycassandra
+Error: Password file read access must be restricted: /etc/cassandra/jmxremote.password
+```
+
+So we restrict the file access, `Dockerfile`:
+
+```bash
+FROM cassandra
+COPY jmxremote.password /etc/cassandra/
+RUN chmod -R 600 /etc/cassandra/jmxremote.password
+```
+
+We build again the image:
+
+```bash
+$ docker build -t "mycassandra" .Sending build context to Docker daemon 3.072 kB
+Step 1 : FROM cassandra
+ ---> 368a7c448425
+Step 2 : COPY jmxremote.password /etc/cassandra/
+ ---> Using cache
+ ---> fa43c7c67638
+Step 3 : RUN chmod -R 600 /etc/cassandra/jmxremote.password
+ ---> Using cache
+ ---> 7f02e0aaf316
+Successfully built 7f02e0aaf316
+```
+
+and run:
+
+```bash
+$ docker run --rm --name containerized-cassandra -p 7199:7199 -e LOCAL_JMX='no' mycassandra
+INFO  17:11:49 Starting listening for CQL clients on /0.0.0.0:9042 (unencrypted)...
+INFO  17:11:49 Not starting RPC server as requested. Use JMX (StorageService->startRPCServer()) or nodetool (enablethrift) to start it
+INFO  17:11:50 Scheduling approximate time-check task with a precision of 10 milliseconds
+INFO  17:11:50 Created default superuser role 'cassandra'
+```
+
+and now login to jmx with the `user` we defined:
+
+```bash
+$ java -jar ~/Downloads/jmxterm-1.0-alpha-4-uber.jar --user controlRole --url localhost:7199
+Authentication password: ********
+Welcome to JMX terminal. Type "help" for available commands.
+$>
+```
+
+SUCCESS!
 
 **Which apps to first convert** 
 
