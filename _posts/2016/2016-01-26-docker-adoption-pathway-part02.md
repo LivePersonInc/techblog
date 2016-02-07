@@ -5,7 +5,7 @@ date:   2016-01-26 22:18:00
 categories: software-development,architecture,design
 comments: true
 author: Tomer Ben-David
-published: false
+published: true
 ---
 # Docker adoption pathway - Part 2
 
@@ -181,9 +181,40 @@ else
   JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl=false"
 ```
 
-so if we do `ps -ef | grep cassandra` we find that we have `-Dcassandra.jmx.local.port=7199` which means we are using the `local.port` and not setting the `com.sun.management.jmxremote.rmi.port` therefore we are going to change `LOCAL_JMX` to `no`.
+so if we do `ps -ef | grep cassandra` we find that we have `-Dcassandra.jmx.local.port=7199` which means we are using the `local.port` and not setting the `com.sun.management.jmxremote.rmi.port` therefore we are going to change `LOCAL_JMX` to `no` by means of passing an environment varialbe to our cassandra docker image.
 
-**we need to change the example to tomcat so that we don't have the jmxremote.rmi.port by default on!**
+```bash
+$ docker run --rm --name containerized-cassandra -p 7199:7199 -e LOCAL_JMX='no' cassandra
+```
+
+we get `Error: Password file not found: /etc/cassandra/jmxremote.password`, let's see if the folder `/etc/cassandra` already exists in the container, because if it's not we are free to mount it:
+  
+```bash
+$ docker exec -it containerized-cassandra bash
+
+root@33acd467a75b:/# ls -la /etc/cassandra 
+total 100
+drwxrwxrwx  5 cassandra cassandra  4096 Feb  7 07:29 .
+drwxr-xr-x 75 root      root       4096 Feb  7 07:29 ..
+-rw-r--r--  1 cassandra cassandra 10200 Jan  7 21:41 cassandra-env.sh
+-rw-r--r--  1 cassandra cassandra  1200 Jan  7 21:41 cassandra-rackdc.properties
+-rw-r--r--  1 cassandra cassandra  1358 Jan  7 21:41 cassandra-topology.properties
+```
+
+There are multiple paths here to take:
+
+1. Contribute to the original cassandra `image` with an update specifying where the `jmxremote.password` exists.
+1. Mount the `/etc/cassandra` externally with a `volume` to allow you to edit these configurations externally.
+1. Extend the `cassandra` image and add to it your own `jmxremote.password` file.
+1. Connect the jmx passwords to your `LDAP` service.
+
+While the `LDAP` service is our favorite option, and while this is a repeating theme, local changes are moving to the network, for this example we are going to create our own image and add to it the `jmxremote.password` file.
+
+Our `Dockerfile` would look as following:
+
+
+
+so we should just update to use the `jmxremote`, lets do it:
 
 ```bash
 # jmx: metrics and administration interface
