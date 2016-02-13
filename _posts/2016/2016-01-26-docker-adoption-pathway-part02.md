@@ -9,27 +9,29 @@ published: false
 ---
 # Docker adoption pathway - Part 2
 
-In part 1 we went through the motivation to adopt `containerized deployments`, we checked our readiness for `immutable deployments` and went through some of the effect on current deployment tools that are already in place.  To recap, converting new services in new environments for containers is very different from converting already existing or new services with existing environments and deployment methodology and troubleshooting procedures, with the latter including much more effort.  Therefore, in this part we are going to see how troubleshooting may change, examine which apps are good candidates to be the first to get `containerized`, and, lastly, we are going to examine how `service discovery` changes. 
+In part 1 we went through the motivation for `containers` adoption, we checked our readiness for `immutable deployments` and went through some of the effect on current deployment tools that are already in place.  To recap, converting new services in new environments for containers is very different from converting existing or new services with existing environments, deployment methodology and troubleshooting procedures; the latter including much more effort.  Therefore, in this part we are going to see how troubleshooting may change, examine which apps are good candidates to get `containerized` first, and, lastly, we are going to examine how `service discovery` changes. 
 
 **Troubleshooting** 
 
-Today, much of troubleshooting is done by checking out remote moniroting tools which receive data from your servers, tools such as `graphite`, `logstash`, `newrelic`, `jconsole`, `visualvm`, and custom home made tools are used instead of accessing directly servers, this `remote` mostly stays the same, however, there are cases where you find that you need to access your servers and run various commands (ie. `uptime`, `ps`, `lsof`, `tcpdump`, `dmesg`, `sar`, ...) in order to check nodes and apps health and find problems root cause.  In addition, many times you expose custom web management pages on the `app` instance which exposes app internal state and data or metrics on your instances which possibly allows you to run commands directly on your app instance when needed.  In `jvm` based `apps` in addition to these management web pages it is very common to have `jmx` exposed to check the status of the app and manage it.  When you have your app `containerized` things change.  First and foremost the machine names, you less deal with machines and deal more with the `cluster orchestrator`, be it `kubernetes`, `fleet`, `docker compose` or other orchestration tools.  With regards to having the web pages or `jmx` exposed orchestrator services take care of exposing ports which are used to access your server as a logical business unit, but, what about accessing ports on your specific app node? the `services` usually perform load balancing, example `round robin` load balancing, this does not help when you need to access a specific app and not only one of the apps.  If the gateway which runs `jconsole` is outside the cluster you would need to expose the ports so that that gateway which has access to it.  With another layer of abstraction we can create a tool in our cluster where we would send it commands or request to see apps management web pages and it would return us the page or jmx result of a specific container.  
+Today, much of troubleshooting is done by checking out remote monitoring tools which receive data from your servers. tools such as `graphite`, `logstash`, `newrelic`, `jconsole`, `visualvm`, and custom home made tools, are used instead of accessing directly servers, this `remote troubleshoot mostly` methodology stays the same, however, there are cases where you find that you need to access your servers and run various troubleshooting commands such as `uptime`, `ps`, `lsof`, `tcpdump`, `dmesg`, `sar`.  All this in order to check nodes and apps health and find problems root cause.  In addition, many times you expose custom web management pages on your `app` instance which exposes your app's internal state and data or metrics on your instances which possibly allows you to run commands directly on your app instance when needed.  In `jvm` based `apps` in addition to these management web pages it is very common to have `jmx` exposed to check the status of the app and manage it.  When you have your app `containerized` things change.  First and foremost the machine names, you less deal with machines and deal more with the `cluster orchestrator`, be it `kubernetes`, `fleet`, `docker compose` or other orchestration tools.  With regards to having the web pages or `jmx` exposed orchestrator services take care of exposing ports which are used to access your server as a logical business unit, but, what about accessing ports on your specific app node? the `services` usually perform load balancing, example `round robin` load balancing, this does not help when you need to access a specific app and not only one of the apps.  If the gateway which runs `jconsole` is outside the cluster you would need to expose the ports so that that gateway which has access to it.  With another layer of abstraction we can create a tool in our cluster where we would send it commands or request to see apps management web pages and it would return us the page or jmx result of a specific container.  
 
-Let's work with an actual example and see how troubleshooting change.  In our case we need to run a network analyzer tools - `tcpdump` in order to analyze the packets send in between containers.  In this example we are going to use a `containerized cassandra` and go through the process of using `tcpdump` on it. 
+Let's work with an actual example and see how troubleshooting change.  In our case we need to run a network analyzer tool - `tcpdump` in order to analyze the packets sent in between `containers`.  In this example we are going to use a `containerized cassandra` and go through the process of using `tcpdump` to be able to analyze its communication.
+ 
+ Note: we are going to start by naively trying to run the tools as we did prior `containers era` and then refactor our process until it matches the `containers` spirit.
 
-Let's first start up cassandra server container: 
+Let's first start up first cassandra server container: 
 
 ```bash--nacassandra -d cassandra 
 91523e6a1e34f52e89993ae75821633a92b2528c5e0f551983a9518f7044d286
 ```
 
-Let's start a second cassandra container and seed it with the first cassandra container so the instances are aware of each other:
+We have one cassandra conatiner up, let's start a second cassandra container and `seed` it with the first cassandra container so that both instances are aware of each other's existance:
 
 ```bash
 docker run --name containerized-cssandra2 -d -e CASSANDRA_SEEDS="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' containerized-cassandra)" cassandra:latest
 ```
 
-Let's verify both of them are running:
+We have started the second cassandra container and passed to it `CASSANDRA_SEEDS` environment variable which includes the first's cassandra `ip`.  Let's verify both of them are running:
 
 ```bash
 $ docker ps
@@ -38,7 +40,7 @@ CONTAINER ID        IMAGE               COMMAND                  CREATED        
 91523e6a1e34        cassandra           "/docker-entrypoint.s"   10 minutes ago        Up 12 seconds       7000-7001/tcp, 7199/tcp, 9042/tcp, 9160/tcp   containerized-cassandra
 ```
 
-Access the container with shell:
+Both are running.  Let's access the first container with `shell` access:
 
 ```bash
 $ docker exec -it containerized-cassandra bash
@@ -52,19 +54,19 @@ and execute our favorite network analysis tool - `tcpdump`
 bash: tcpdump: command not found
 ```
 
-well, it didn't work, would other troulbeshooting commands work? `lsof` for example?
+well, it didn't work, would other troulbeshooting tools work? `lsof` for example?
 
 ```bash
 # lsof
 bash: lsof: command not found
 ```
 
-So we don't have any `tcpdump` nor `lsof` in our `container`.  Well it is the spirit of containers to be lightweight so we should expect not to have these tools instsalled and you are most likely to be in this situation quiet a lot for `containerized apps`.  What it actually means to us is that in containerized environments troubleshooting is different.
+So we don't have any `tcpdump` nor `lsof` in our `container`.  Well, I said we were naive.  The way to think of `containers` is more of as processes than full blown servers as we did with `VM's` before.  Our problme was that that it looked like a server it walked like a server and it quaked like a server, but it's not actually a full blown server **nor** a `lightweight vm` and this is why we got mislead.  We should expect not to have these tools preinstalled in our container and you are most likely to be in this situation quiet a lot for other not in your control `containerized apps`.  What it actually means to us is that in containerized environments troubleshooting is different than prior `vm based` environments.
 
-So if we wish to use one of the above commands what should be our path, there are multiple ones, lets check our options and choose what we think suits best this problem.  Our options (before filtering and prioritizing):
+So, if we wish to use one of the above tools available for us what should be our path? there are multiple ones, lets check our options and choose what we think suits best this problem.  Our options with regards to **`tcpdump`** (before filtering and prioritizing):
 
-1. Troubleshoot the container `externally`.  Run the commands from the `node` itself.
-1. Use another container perhaps a `troubleshooting container` to run the commands.
+1. Troubleshoot the container `externally`.  Run `tcpdump` from the `node` itself.
+1. Use another container perhaps a `troubleshooting container` which preincludes `tcpdump` just for such cases.
 1. Install the `troubleshooting` commands inside our `app` container.
 1. Use new container troubleshooting abstractions, for example, docker has `docker top` command so you can run externally to the container `docker top containerized-cassandra`.
 1. Use 3rd party tools which allow greater visibility into your containers.
