@@ -7,8 +7,6 @@ comments: true
 author: Tomer Ben-David
 published: true
 ---
-**Preface**
-
 In part 1 we went through the motivation for `containers` adoption, we checked our readiness for `immutable deployments` and went through some of the effect on current deployment tools that are already in place.  To recap, converting new services in new environments for containers is very different from converting existing or new services with existing environments, deployment methodology and troubleshooting procedures; the latter including much more effort.  Therefore, in this part we are going to see how troubleshooting may change, examine which apps are good candidates to get `containerized` first, and, lastly, we are going to examine how `service discovery` changes. 
 
 **Troubleshooting** 
