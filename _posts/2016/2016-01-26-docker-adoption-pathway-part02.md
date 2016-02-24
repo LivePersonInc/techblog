@@ -11,19 +11,19 @@ In part 1 we went through the **motivation** for `containers` adoption, we check
 
 **Troubleshooting** 
 
-**Remote troubleshoot** 
+**Remote troubleshooting** 
 
-Today, much of troubleshooting is done by checking out remote monitoring tools which receive data from your servers. tools such as `graphite`, `logstash`, `newrelic`, plus we have custom home made tools which handle sending information remotely and on the other side viewing them.   We are getting used that instead of accessing directly servers we find infomration about them remotely.   This `remote troubleshoot mostly` methodology stays the same.
+Today, much of troubleshooting is done by checking out remote monitoring tools which receive data from your servers. tools such as **`graphite`, `logstash`, `newrelic`**, plus we have custom home made tools which handle sending information remotely and on the other side viewing them.   We are getting used that instead of accessing directly servers we find information about them remotely.   This `remote troubleshoot mostly` methodology stays the same.
 
 **When you can't remote troubleshoot** 
 
 There are cases however, when you find that you need to access your servers and run various troubleshooting commands such as **`uptime`, `ps`, `lsof`, `tcpdump`, `dmesg`, `sar`**.  All this in order to check nodes and apps health and find problems root cause, standard troubleshooting.  In addition, many times you expose custom web management pages on your `app` instance which exposes your app's internal state and data or metrics on your instances which possibly allows you to run commands directly on your app instance when needed.  In `jvm` based `apps` in addition to these management web pages it is very common to have **`jmx`** exposed to check the status of the app and manage it, that is what `jmx` was built for after all.  
 
-**When you have your app `containerized` things change**.  First and foremost **dealing with machines**, you deal less with machines and deal more with the **`cluster orchestrator`**, be it `kubernetes`, `fleet`, `docker compose` or other orchestration tools.  With regards to having the web pages or `jmx` exposed orchestrator services take care of exposing ports which are used to access your server as a logical business unit, but, what about accessing ports on your specific app node? the `services` usually perform load balancing, example `round robin` **load balancing**, this does not help when you need to access a specific app and not only one of the apps.  If the gateway which runs `jconsole` is outside the cluster you would need to expose the ports so that that gateway has access to it.  If you choose, with another layer of abstraction we can create a tool in our cluster where we would send it commands or request to see apps management web pages and it would return us the page or jmx result of a specific container.  
+**When you have your app `containerized` things change**.  First and foremost **dealing with machines**, you deal less with machines and deal more with the **`cluster orchestrator`**, be it `kubernetes`, `fleet`, `docker compose` or other orchestration tools.  With regards to having the web pages or `jmx` exposed orchestrator services take care of exposing ports which are used to access your server as a logical business unit, but, what about accessing ports on your specific app node? the **`services`** usually perform load balancing, example `round robin` **load balancing**, this does not help when you need to access a specific app and not only one of the apps.  If the gateway which runs `jconsole` is outside the cluster you would need to expose the ports so that that gateway has access to it.  If you choose, with another layer of abstraction we can create a tool in our cluster where we would send it commands or request to see apps management web pages and it would return us the page or jmx result of a specific container.  
 
 **Running tcpdump in containerized environments**
 
-Let's work with an actual example to see the changing troubleshooting in front of our eyes.  In our case we need to run a network analyzer tool - `tcpdump` in order to analyze the packets sent in between `containers`.  In this example we are going to use a `containerized cassandra` and go through the process of using `tcpdump` to analyze its communication, we would just try to run `tcpdump`.
+Let's work with an **actual example** to see the changing troubleshooting in front of our eyes.  In our case we need to run a network analyzer tool - `tcpdump` in order to analyze the packets sent in between `containers`.  In this example we are going to use a `containerized cassandra` and go through the process of using `tcpdump` to analyze its communication, we would just try to run `tcpdump`.
  
  Note: we are going to start by **naively** trying to run the tools as we did prior `containers era` and then refactor our process until it matches the `containers` spirit.
 
@@ -81,15 +81,15 @@ well, it didn't work, would other troubleshooting tools work? `lsof` perhaps?
 bash: lsof: command not found
 ```
 
-So we don't have any `tcpdump` nor `lsof` in our `container`.  Well, I said we were starting naive.  Actually, the way to think of `containers` is more of as processes than a full blown servers what was true for `VM's` isn't true for containers, at least today.  Our problem was that that the container looked like a server, it walked like a server and it quaked like a server, but it's not an actual full blown server **nor** a `lightweight vm` and this is why we got mislead.  We should expect not to have these tools preinstalled in our container and you are most likely to be in this situation quiet a lot for other containers which are not in your control.  What it actually means to us is that in containerized environments troubleshooting is different which is expected but could be misleading at times.
+So we don't have any `tcpdump` nor `lsof` in our `container`.  Well, I said we were starting naive.  Actually, the way to think of `containers` is more of as **processes** than a full blown servers what was true for `VM's` isn't true for containers, at least today.  Our problem was that that the container looked like a server, it walked like a server and it quaked like a server, but it's not an actual full blown server **nor** a `lightweight vm` and this is why we got mislead.  We should expect not to have these tools preinstalled in our container and you are most likely to be in this situation quiet a lot for other containers which are not in your control.  What it actually means to us is that in containerized environments troubleshooting is different which is expected but could be misleading at times.
 
 So, if we wish to use one of the above troubleshooting tools what should be our path? well, there are multiple ones, lets check our options and choose what we think suits best this problem.  Our options with regards to **`tcpdump`** (before filtering and prioritizing):
 
-1. Troubleshoot the container `externally`.  Run `tcpdump` from the `node` itself.
-1. Use another container perhaps a `troubleshooting container` with pre-installed `tcpdump` just for such cases.
-1. Install the `troubleshooting` commands inside our `app` container.
-1. Use new container troubleshooting abstractions, for example, docker has `docker top` command so you can run externally to the container `docker top containerized-cassandra`.
-1. Use 3rd party tools which allow greater visibility into your containers.
+1. Troubleshoot the container **`externally`**.  Run `tcpdump` from the `node` itself.
+1. Use another container perhaps a **`troubleshooting container`** with pre-installed `tcpdump` just for such cases.
+1. **Install** the `troubleshooting` commands inside our `app` container.
+1. Use new container troubleshooting abstractions, for example, docker has **`docker top`** command so you can run externally to the container `docker top containerized-cassandra`.
+1. Use **3rd party** tools which allow greater visibility into your containers.
 
 As always we first see if we have standards, we obviously don't have any `docker tcpdump` then the second best option we have opted for is to run a new container running itself `tcpdump` and use it to analyze the network traffic.  We could have a collection of such troubleshooting containers for such cases, we could then trigger them when needed, we do not clutter our host we have them in containers.
 
