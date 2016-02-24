@@ -56,7 +56,18 @@ $ docker exec -it containerized-cassandra bash
 root@91523e6a1e34:/#
 ```
 
-and execute our favorite network analysis tool - `tcpdump`
+Let's start executing troubleshooting utilities start with `uptime`
+
+```bash
+# date
+Wed Feb 24 09:55:49 UTC 2016
+root@bab3991fd904:/# uptime
+ 09:55:52 up  1:07,  0 users,  load average: 0.64, 1.07, 1.18
+```
+
+And it has presented the time and number of users with relation to the container. 
+
+Let's move on to executing more troubleshooting commands - and execute our favorite network analysis tool - `tcpdump`
 
 ```bash
 # tcpdump
