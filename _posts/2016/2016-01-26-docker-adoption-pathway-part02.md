@@ -23,7 +23,108 @@ There are cases however, when you find that you need to access your servers and 
 
 **3 examples** We are going to check out 3 different aspects of troubleshooting: applicative - `running jmx`, performance: `cpu metrics collection`, `utility commands` - tcpdump.
 
-**Running tcpdump in containerized environments**
+**Example 1 Monitoring CPU** 
+
+Create dockerfile which utilizes cpu `Dockerfile`:
+
+`looper.sh`
+
+```bash
+#!/bin/bash
+while [ true ] ;do echo `date`;done
+```
+
+```bash
+FROM ubuntu
+COPY looper.sh .
+RUN chmod +x ./looper.sh
+CMD ["./looper.sh"]
+```
+
+build the docker image:
+
+```bash
+$ docker build -t "looper" .
+Sending build context to Docker daemon 2.048 kB
+Step 1 : FROM ubuntu
+ ---> 0dd3b242dfe5
+Step 2 : CMD while [ true ] ;do echo `date`;done
+ ---> Running in 8cd8baca53f9
+ ---> dbb75598f34a
+Removing intermediate container 8cd8baca53f9
+```
+
+run it and allow it to run only on a ****single core**:
+
+```bash
+$ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" looper
+```
+
+As we know our docker container is a process let's search it in list of processes:
+
+```bash
+$ ps -ef | grep looper.sh
+root     12454  2335 16 17:39 ?        00:20:25 /bin/bash ./looper.sh
+```
+
+let's use the `ps` command to find its cpu utilization.
+
+```bash
+$ ps -p 12454 -o %cpu 
+%CPU
+17.0
+```
+
+Wait! we have 4 cores and our process fully utilizes one core at least that's what we asssume so shouldn't utilization be closer to 25%? lets check the manual on `ps` the man page says: `CPU usage is currently expressed as the	percentage of time spent running during the entire lifetime of a	process. This is not ideal, and	it does	not conform	to the standards that ps otherwise conforms to.	CPU usage is unlikely to add up to exactly 100%.`.  this can explain it, but we can verify this, there are more methods to check for cpu utilization.  As we mentioned earlier we always prefer to use the standard tools, lets use docker stanard tool for cpu utilization measurment:
+
+We are going to first utilize docker commands for inspecting the cpu:
+
+```bash
+docker stats single-cpu-killer
+```
+
+which results with:
+
+```bash
+CONTAINER           CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O
+single-cpu-killer   97.90%              413.7 kB / 16.52 GB   0.00%               3.882 kB / 648 B    0 B / 0 B
+```
+
+so though we have 4 cpus the docker stats for that docker process shown close to `100%` utilization which makes sense because it treats that process as the only process.
+
+How would it compute it?  docker uses `cgroups` to control process resources.
+
+Let's locate our container in `cgroups`
+
+```bash
+$ docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                         NAMES
+8df2eab576ae        looper              "./looper.sh"            About an hour ago   Up About an hour                                                  single-cpu-killer
+```
+
+the cpu accounting information would reside at: `/sys/fs/cgroup/cpuacct`
+ 
+and for our container:
+
+`bash
+cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b615646b7ac62ab63a1aa67/cpuacct.usage
+6285931657516
+```
+
+this is absolute CPU usage of the container in nanoseconds.  If it equals the number of nanoseconds (for a single core) in 1 second this means its in 100% cpu usage.
+
+so lets print this number of our container in time diff of 1 second:
+
+```bash
+$ cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b615646b7ac62ab63a1aa67/cpuacct.usage;sleep 1;cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b615646b7ac62ab63a1aa67/cpuacct.usage
+
+6379039984585
+6379982913877
+```
+
+take the difference between those two numbers and divide by number of nanoseconds in one second (1 billion) and you get indeed 94% cpu utilization.
+
+**Example 2 Running tcpdump in containerized environments**
 
 Let's work with an **actual example** to see the changing troubleshooting in front of our eyes.  In our case we need to run a network analyzer tool - `tcpdump` in order to analyze the packets sent in between `containers`.  In this example we are going to use a `containerized cassandra` and go through the process of using `tcpdump` to analyze its communication, we would just try to run `tcpdump`.
  
@@ -104,7 +205,7 @@ listening on veth9258f66, link-type EN10MB (Ethernet), capture size 65535 bytes
 
 And this is it, we should just listen to the traffic from the outside, our container is only meant to run our app, need another tool running? be it troubleshooting or any other? run it in another container.
 
-**Connecting to JMX in containerized environments**
+**Example 3 Connecting to JMX in containerized environments**
 
 Let's connect to one of our containers `JMX`.  We start `jvisualvm` and we try to connect to its jmx, we are going to use [jmxterm](http://wiki.cyclopsgroup.org/jmxterm/) in order to do that from the `commandline`
 `cassandra` exposes jmx, according to it's documentation it's on port: [7199 - Cassandra JMX monitoring port.](https://docs.datastax.com/en/cassandra/2.0/cassandra/security/secureFireWall_r.html)
@@ -316,113 +417,6 @@ $>
 ```
 
 SUCCESS! we have connected to our `containerized cassandra's JMX`.
-
-**Monitoring CPU** 
-
-Create dockerfile which utilizes cpu `Dockerfile`:
-
-`looper.sh`
-
-```bash
-#!/bin/bash
-while [ true ] ;do echo `date`;done
-```
-
-```bash
-FROM ubuntu
-COPY looper.sh .
-RUN chmod +x ./looper.sh
-CMD ["./looper.sh"]
-```
-
-build the docker image:
-
-```bash
-$ docker build -t "looper" .
-Sending build context to Docker daemon 2.048 kB
-Step 1 : FROM ubuntu
- ---> 0dd3b242dfe5
-Step 2 : CMD while [ true ] ;do echo `date`;done
- ---> Running in 8cd8baca53f9
- ---> dbb75598f34a
-Removing intermediate container 8cd8baca53f9
-```
-
-run it and allow it to run only on a ****single core**:
-
-```bash
-$ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" looper
-```
-
-As we know our docker container is a process let's search it in list of processes:
-
-```bash
-$ ps -ef | grep looper.sh
-root     12454  2335 16 17:39 ?        00:20:25 /bin/bash ./looper.sh
-```
-
-let's use the `ps` command to find its cpu utilization.
-
-```bash
-$ ps -p 12454 -o %cpu 
-%CPU
-17.0
-```
-
-Wait! we have 4 cores and our process fully utilizes one core at least that's what we asssume so shouldn't utilization be closer to 25%? lets check the manual on `ps` the man page says: `CPU usage is currently expressed as the	percentage of time spent running during the entire lifetime of a	process. This is not ideal, and	it does	not conform	to the standards that ps otherwise conforms to.	CPU usage is unlikely to add up to exactly 100%.`.  this can explain it, but we can verify this, there are more methods to check for cpu utilization.  As we mentioned earlier we always prefer to use the standard tools, lets use docker stanard tool for cpu utilization measurment:
-
-We are going to first utilize docker commands for inspecting the cpu:
-
-```bash
-docker stats single-cpu-killer
-```
-
-which results with:
-
-```bash
-CONTAINER           CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O
-single-cpu-killer   97.90%              413.7 kB / 16.52 GB   0.00%               3.882 kB / 648 B    0 B / 0 B
-```
-
-so though we have 4 cpus the docker stats for that docker process shown close to `100%` utilization which makes sense because it treats that process as the only process.
-
-How would it compute it?  docker uses `cgroups` to control process resources.
-
-Let's locate our container in `cgroups`
-
-```bash
-$ docker ps
-CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                         NAMES
-8df2eab576ae        looper              "./looper.sh"            About an hour ago   Up About an hour                                                  single-cpu-killer
-```
-
-the cpu accounting information would reside at: `/sys/fs/cgroup/cpuacct`
- 
-and for our container:
-
-`bash
-cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b615646b7ac62ab63a1aa67/cpuacct.usage
-6285931657516
-```
-
-this is absolute CPU usage of the container in nanoseconds.  If it equals the number of nanoseconds (for a single core) in 1 second this means its in 100% cpu usage.
-
-so lets print this number of our container in time diff of 1 second:
-
-```bash
-$ cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b615646b7ac62ab63a1aa67/cpuacct.usage;sleep 1;cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b615646b7ac62ab63a1aa67/cpuacct.usage
-
-6379039984585
-6379982913877
-```
-
-take the difference between those two numbers and divide by number of nanoseconds in one second (1 billion) and you get indeed 94% cpu utilization.
- 
-what this means for monitoring tools:
-
- 
-
-
 
 
 **Which apps to first convert** You must be having many `app` flavours with the most common `http` and `websocket` based services; but, do you also have `samza cluster`? `storm topologies`? `hadoop` jobs? `spark streaming`? `spark jobs?` `vert.x` servers? `nodejs`? `nginx`? `databases servers`, `standalone` apps?.  That means you should consider which server types are your candidates for `container` adoption or at least which are the first.  While we may claim that any app can and should be `containerized` each such app `containerization` requires an effort, with limited resources you should choose the ones your organization would gain the most out of their containerization.  
