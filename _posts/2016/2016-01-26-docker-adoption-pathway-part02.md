@@ -106,7 +106,7 @@ the cpu accounting information would reside at: `/sys/fs/cgroup/cpuacct`
  
 and for our container:
 
-`bash
+```bash
 cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b615646b7ac62ab63a1aa67/cpuacct.usage
 6285931657516
 ```
