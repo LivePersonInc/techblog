@@ -54,7 +54,7 @@ Step 2 : CMD while [ true ] ;do echo `date`;done
 Removing intermediate container 8cd8baca53f9
 ```
 
-run it and allow it to run only on a ****single core**:
+run it and allow it to run only on a **single core**:
 
 ```bash
 $ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" looper
