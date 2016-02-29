@@ -133,7 +133,6 @@ func calculateCPUPercent(previousCPU, previousSystem uint64, v *types.StatsJSON)
 
 As we might have multiple `cores` we need to multiply by PercpuUsage and then convert to percentage by multiplying by 100.0.
 
-
 Underneath how is this cpu data being taken?  docker uses `cgroups` (`control groups`) to control process resources, it controls `CPU, memory, diskio, network, etc` for process groups.
 
 for example when we ask docker to provide only `50%` of the cpu by using `--cpu-quota="50000"` we actually update the cpu_quota in cgroups, see:
@@ -185,6 +184,39 @@ $ cat /sys/fs/cgroup/cpuacct/docker/8df2eab576ae064b410dc24fbd19d56c3621bedc7b61
 ```
 
 take the difference between those two numbers and divide by number of nanoseconds in one second (1 billion) and you get indeed 94% cpu utilization.
+
+So we know how to get the cpu percentage with `docker stats` command, but that's still not that useful for monitoring systems, just as we don't want to parse top we would rather get something more structured such as a json.  Thankfully docker provides remote http api which we can utilize for that purpose we use:
+
+```bash
+$ echo -ne "GET /containers/single-cpu-killer/stats HTTP/1.1\r\n\r\n" | sudo nc -q -1 -U /var/run/docker.sock
+```
+
+and we get back all the cpu information with json:
+
+```json
+"cpu_stats":{  
+   "cpu_usage":{  
+      "total_usage":222305427989,
+      "percpu_usage":[  
+         222305427989,
+         0,
+         0,
+         0
+      ],
+      "usage_in_kernelmode":159780000000,
+      "usage_in_usermode":62740000000
+   },
+   "system_cpu_usage":6215130000000,
+   "throttling_data":{  
+      "periods":4665,
+      "throttled_periods":4663,
+      "throttled_time":230511526966
+   }
+},
+"memory_stats":
+```
+
+and as you can discover from the API we get many other metrics such as memory.  This we can work with.
 
 **Example 2 Running tcpdump in containerized environments**
 
