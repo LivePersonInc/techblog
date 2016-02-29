@@ -21,6 +21,12 @@ There are cases however, when you find that you need to access your servers and 
 
 **When you have your app `containerized` things change**.  First and foremost **dealing with machines**, you deal less with machines and deal more with the **`cluster orchestrator`**, be it `kubernetes`, `fleet`, `docker compose` or other orchestration tools.  With regards to having the web pages or `jmx` exposed orchestrator services take care of exposing ports which are used to access your server as a logical business unit, but, what about accessing ports on your specific app node? the **`services`** usually perform load balancing, example `round robin` **load balancing**, this does not help when you need to access a specific app and not only one of the apps.  If the gateway which runs `jconsole` is outside the cluster you would need to expose the ports so that that gateway has access to it.  If you choose, with another layer of abstraction we can create a tool in our cluster where we would send it commands or request to see apps management web pages and it would return us the page or jmx result of a specific container.  
 
+We are going to check out 3 examples of troubleshooting in the new world:
+
+1. Performance - **`cpu metrics collection`**
+1. Applicative - **`running jmx`**
+1. utility commands - **`running tcpdump`**
+
 **3 examples** We are going to check out 3 different aspects of troubleshooting: applicative - `running jmx`, performance: `cpu metrics collection`, `utility commands` - tcpdump.
 
 **Example 1 Monitoring CPU** 
