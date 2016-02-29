@@ -29,9 +29,18 @@ We are going to check out 3 examples of troubleshooting in the new world:
 
 **3 examples** We are going to check out 3 different aspects of troubleshooting: applicative - `running jmx`, performance: `cpu metrics collection`, `utility commands` - tcpdump.
 
-**Example 1 Monitoring CPU** 
+**Example 1 Monitoring CPU**
 
-Create dockerfile which utilizes cpu `Dockerfile`:
+In this example we are going to check for ways to discuss cpu metrics collection and things we want to take into account when working in containerized environment.
+
+Questions to ask:
+
+1. What does the `machine cpu` metric tells us now that we have containers starting and stopping dynamically? is high cpu bad or does it simply  means the orchestration is managing to make good usage of our metal?
+1. How do you collect `container cpu`?
+1. With the multiple ways we find for collecting `container cpu` is there a difference in the actual data collected? can we get different results?
+1. Is there a parsable friendly format for `cpu metric` collection?
+
+We are going to work out these questions by examples, first we create `dockerfile` which can fully stress a single cpu core `Dockerfile`:
 
 ```bash
 FROM ubuntu
