@@ -90,9 +90,57 @@ CONTAINER           CPU %               MEM USAGE / LIMIT     MEM %             
 single-cpu-killer   97.90%              413.7 kB / 16.52 GB   0.00%               3.882 kB / 648 B    0 B / 0 B
 ```
 
-so though we have 4 cpus the docker stats for that docker process shown close to `100%` utilization which makes sense because it treats that process as the only process.
+so though we have 4 cores the docker stats for that docker process shown close to `100%` utilization which makes sense because it treats that process as the only process.
 
-How would it compute it?  docker uses `cgroups` to control process resources.
+if we want to see how actually the `docker stat` calculates the `cpu usage percentage` we should have a look at `docker client` sources at `stats.go`
+
+[docker client stats.go](https://github.com/docker/docker/blob/master/api/client/stats.go)
+
+we can see first a call to calculate cpu percentage:
+
+```go
+previousCPU = v.PreCPUStats.CPUUsage.TotalUsage
+previousSystem = v.PreCPUStats.SystemUsage
+cpuPercent = calculateCPUPercent(previousCPU, previousSystem, v)
+```
+
+and then `func calculateCPUPercent(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {` with:
+
+```go
+cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(previousCPU)
+systemDelta = float64(v.CPUStats.SystemUsage) - float64(previousSystem)
+```
+
+Note that the `systemCPU` here is not the system cpu as used by the container, but the total machine system cpu delta.  While the cpuDelta is the `container` cpu delta for the container.  This means we can divie the `containerCPU` which is `totalUsage` diff by the `systemCPU` which is the total diff and this is exactly what is done at: **(cpuDelta / systemDelta)**
+
+```go
+cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+```
+
+As we might have multiple `cores` we need to multiply by PercpuUsage and then convert to percentage by multiplying by 100.0.
+
+
+Underneath how is this cpu data being taken?  docker uses `cgroups` (`control groups`) to control process resources, it controls `CPU, memory, diskio, network, etc` for process groups.
+
+for example when we ask docker to provide only `50%` of the cpu by using `--cpu-quota="50000"` we actually update the cpu_quota in cgroups, see:
+
+```bash
+$ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" --cpu-quota="50000" looper
+```
+
+and if we use the standard `docker stat` we see its consuming `50%` of the single core:
+
+```bash
+CONTAINER           CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O
+c376f04ad25a        48.69%              3.981 MB / 16.52 GB   0.02%               10.21 kB / 648 B    10.84 MB / 0 B
+```
+
+and the way docker has achieved that is by updating the `cpu.cfs_quota_us` for that process
+
+```bash
+cat /sys/fs/cgroup/cpu/docker/c376f04ad25aaa54eec4f2afe63579127bd836a392ef9b4d2b153d47bd5adc62/cpu.cfs_quota_us 
+50000
+```
 
 Let's locate our container in `cgroups`
 
