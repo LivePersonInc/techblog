@@ -27,19 +27,20 @@ There are cases however, when you find that you need to access your servers and 
 
 Create dockerfile which utilizes cpu `Dockerfile`:
 
-`looper.sh`
-
-```bash
-#!/bin/bash
-while [ true ] ;do echo `date`;done
-```
-
 ```bash
 FROM ubuntu
 COPY looper.sh .
 RUN chmod +x ./looper.sh
 CMD ["./looper.sh"]
 ```
+
+looper is a simple single core killer `looper.sh`
+                                      
+```bash
+#!/bin/bash
+while [ true ] ;do echo `date`;done
+```
+
 
 build the docker image:
 
