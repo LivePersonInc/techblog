@@ -29,7 +29,7 @@ We are going to check out 3 scenarios of troubleshooting in the new world:
 
 **Example 1 Monitoring CPU**
 
-In this example we are going to check for ways to discuss cpu metrics collection and things we want to take into account when working in containerized environment.
+In this scenario we are going to check for ways to discuss cpu metrics collection and things we want to take into account when working in containerized environment.
 
 Questions to ask:
 
