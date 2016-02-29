@@ -27,8 +27,6 @@ We are going to check out 3 examples of troubleshooting in the new world:
 1. Applicative - **`running jmx`**
 1. utility commands - **`running tcpdump`**
 
-**3 examples** We are going to check out 3 different aspects of troubleshooting: applicative - `running jmx`, performance: `cpu metrics collection`, `utility commands` - tcpdump.
-
 **Example 1 Monitoring CPU**
 
 In this example we are going to check for ways to discuss cpu metrics collection and things we want to take into account when working in containerized environment.
