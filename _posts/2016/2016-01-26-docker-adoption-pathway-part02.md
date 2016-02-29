@@ -111,10 +111,23 @@ cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(previousCPU)
 systemDelta = float64(v.CPUStats.SystemUsage) - float64(previousSystem)
 ```
 
-Note that the `systemCPU` here is not the system cpu as used by the container, but the total machine system cpu delta.  While the cpuDelta is the `container` cpu delta for the container.  This means we can divie the `containerCPU` which is `totalUsage` diff by the `systemCPU` which is the total diff and this is exactly what is done at: **(cpuDelta / systemDelta)**
+Note that the `systemCPU` here is not the system cpu as used by the container, but the total machine system cpu delta.  While the cpuDelta is the `container` cpu delta for the container.  This means we can divie the `containerCPU` which is `totalUsage` diff by the `systemCPU` which is the total diff and this is exactly what is done at: **(cpuDelta / systemDelta)** see the following `calculateCPUPercent` which takes as argument `prevCPU` as used by container `previousSystem` total system cpu and current cpu usages at `v`:
 
 ```go
-cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+func calculateCPUPercent(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
+	var (
+		cpuPercent = 0.0
+		// calculate the change for the cpu usage of the container in between readings
+		cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(previousCPU)
+		// calculate the change for the entire system between readings
+		systemDelta = float64(v.CPUStats.SystemUsage) - float64(previousSystem)
+	)
+
+	if systemDelta > 0.0 && cpuDelta > 0.0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+	}
+	return cpuPercent
+}
 ```
 
 As we might have multiple `cores` we need to multiply by PercpuUsage and then convert to percentage by multiplying by 100.0.
