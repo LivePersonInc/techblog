@@ -11,7 +11,7 @@ In [part 1](http://livepersoninc.github.io/techblog/docker-adoption-pathway-part
 
 **Troubleshooting in containerized environments** 
 
-Today, much of troubleshooting is done **remotely**, meaning you usually do not access locally the hosts. tools such as **`graphite`, `ELK`, `newrelic`**, we also have custom home made tools which handle sending information remotely and on the other side viewing them.   We are getting used that instead of accessing directly servers we find information about them remotely.   This `remote troubleshoot mostly` methodology stays the same.
+Today, much of troubleshooting is performed **remotely**, meaning you usually do not access locally the hosts. tools such as **`graphite`, `ELK`, `newrelic`**, we also have custom home made tools which handle sending information remotely and on the other side viewing them.   We are getting used that instead of accessing directly servers we find information about them remotely.   This `remote troubleshoot mostly` methodology stays the same.
 
 **When you can't remote troubleshoot** 
 
