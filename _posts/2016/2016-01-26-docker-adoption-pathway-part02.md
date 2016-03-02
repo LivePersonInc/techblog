@@ -231,3 +231,4 @@ and we get back all the cpu information with json:
 
 We can see that we can get both cpu and memory (and additional) metrics for our docker container by connecting to the docker remote api.  The results are parsable which is great as we can pinpoint the information we need for presentation in monitoring components.
 
+.
