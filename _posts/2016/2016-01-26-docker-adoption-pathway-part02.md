@@ -9,29 +9,25 @@ published: true
 ---
 **Introduction**
 
-In [part 1](http://livepersoninc.github.io/techblog/docker-adoption-pathway-part01.html) we went through the motivation for `containers` adoption; we checked our readiness for `immutable deployments` and also examined the effect on current deployment tools that are already in place.  To recap, converting new services in new environments for containers is very different from converting existing or new services with existing environments, deployment methodology and troubleshooting procedures; with the latter including much more effort.  Therefore, in this part, we are going to see how troubleshooting changes.
+In [part 1](http://livepersoninc.github.io/techblog/docker-adoption-pathway-part01.html) we went through the motivation for `containers` adoption; we checked our readiness for `immutable deployments` and also examined the effect on current deployment tools that are already in place.  To recap, converting new services in new environments for containers is very different from converting existing or new services with existing environments, deployment methodology and troubleshooting procedures; with the latter including much more effort.  In this part, we are going to see how troubleshooting changes when adopting `containerized` environments.
 
 **Troubleshooting in containerized environments** 
 
 **Troubleshoot remotely**
 
-Today, much of troubleshooting is performed **remotely**, meaning you usually do not access locally the hosts. tools such as **`graphite`, `ELK`, `newrelic`**, we also have custom home made tools which handle sending information remotely and on the other side viewing them.   We are getting used that instead of accessing directly servers we find information about them remotely.   This `remote troubleshoot mostly` methodology stays the same.
+Today, much of troubleshooting is done remotely, meaning, you usually do not access the hosts locally.  tools such as **`graphite`, `ELK`, `newrelic`** are very common remote troubleshooting tools.  In addition, companies develop custom inhouse tools which handle sending information from local machines to remote server, having users view the results with various clients.   We are already got used to the fact that instead of accessing directly servers we find information about them remotely.   This `remote troubleshoot mostly` methodology stays the same.
 
 **When you can't remote troubleshoot** 
 
-There are cases however, when you find that you need to access your servers and run various troubleshooting commands such as **`uptime`, `ps`, `lsof`, `tcpdump`, `dmesg`, `sar`**.  All this in order to check nodes and apps health and find problems root cause, standard troubleshooting.  In addition, many times you expose custom web management pages on your `app` instance which exposes your app's internal state and data or metrics on your instances which possibly allows you to run commands directly on your app instance when needed.  In `jvm` based `apps` in addition to these management web pages it is very common to have **`jmx`** exposed to check the status of the app and manage it, that is what `jmx` was built for after all.  
+There are cases however when you find that you need to access your servers and run various troubleshooting commands such as `uptime`, `ps`, `lsof`, `tcpdump`, `dmesg`, `sar` locally.  All this in order to check nodes and apps health and find problems root cause - standard troubleshooting.  In addition, many times you expose custom web management pages on your `app` instance which exposes your app's internal state and data or metrics which possibly allows you to run commands directly on your app instance when needed.  In `jvm` based `apps` in addition to these management web pages it is very common to have `jmx` exposed to check the status of the app and manage it - that is what `jmx` was built for after all.  
 
-**When you have your app `containerized` things change**.  First and foremost **dealing with machines**, you deal less with machines and deal more with the **`cluster orchestrator`**, be it `kubernetes`, `fleet`, `docker compose` or other orchestration tools.  With regards to having the web pages or `jmx` exposed orchestrator services take care of exposing ports which are used to access your server as a logical business unit, but, what about accessing ports on your specific app node? the **`services`** usually perform load balancing, example `round robin` **load balancing**, this does not help when you need to access a specific app and not only one of the apps.  If the gateway which runs `jconsole` is outside the cluster you would need to expose the ports so that that gateway has access to it.  If you choose, with another layer of abstraction we can create a tool in our cluster where we would send it commands or request to see apps management web pages and it would return us the page or jmx result of a specific container.  
+**When you have your app `containerized` things change**.  First and foremost dealing with machines, you deal less with machines and deal more with the `cluster orchestrator`.  With regards to having the web pages or `jmx` exposed orchestrator services take care of exposing ports which are used to access your server as a logical business unit, but, what about accessing ports on your specific app node? the `services` usually perform load balancing, example `round robin` load balancing, this does not help when you need to access a specific app and not only one of the apps.  If the gateway which runs `jconsole` is outside the cluster you would need to expose the ports so that that gateway has access to it.  If you choose, with another layer of abstraction you can create a tool in the cluster where you would send it commands or request to see apps management web pages and it would return the page or jmx result of a specific container.  
 
-We are going to check out 3 scenarios of troubleshooting in the new world:
+In this post we are going to focus on `cpu metrics collection` scenario.
 
-1. Performance - **`cpu metrics collection`**
-1. Applicative - **`running jmx`**
-1. utility commands - **`running tcpdump`**
+**Monitoring CPU**
 
-**Example 1 Monitoring CPU**
-
-In this scenario we are going to check for ways to discuss cpu metrics collection and things we want to take into account when working in containerized environment.
+In this scenario we are going to check for ways to collect cpu metrics and what we want to take into account when working in containerized environment.
 
 Questions to ask:
 
@@ -40,7 +36,7 @@ Questions to ask:
 1. With the multiple ways we find for collecting `container cpu` is there a difference in the actual data collected? can we get different results?
 1. Is there a parsable friendly format for `cpu metric` collection?
 
-We are going to work out these questions by examples, first we create `dockerfile` which can fully stress a single cpu core `Dockerfile`:
+We are going to work out these questions by examples.  First we create `Dockerfile` which can fully stress a single cpu core:
 
 ```bash
 FROM ubuntu
@@ -49,7 +45,7 @@ RUN chmod +x ./looper.sh
 CMD ["./looper.sh"]
 ```
 
-looper is a simple single core killer `looper.sh`
+Looper is a simple single core killer `looper.sh`:
                                       
 ```bash
 #!/bin/bash
@@ -57,7 +53,7 @@ while [ true ] ;do echo `date`;done
 ```
 
 
-build the docker image:
+Build the docker image:
 
 ```bash
 $ docker build -t "looper" .
@@ -70,7 +66,7 @@ Step 2 : CMD while [ true ] ;do echo `date`;done
 Removing intermediate container 8cd8baca53f9
 ```
 
-run it and allow it to run only on a **single core**:
+Run it and allow it to run only on a single core:
 
 ```bash
 $ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" looper
@@ -83,7 +79,7 @@ $ ps -ef | grep looper.sh
 root     12454  2335 16 17:39 ?        00:20:25 /bin/bash ./looper.sh
 ```
 
-let's use the `ps` command to find its cpu utilization.
+Let's use the `ps` command to find its cpu utilization.
 
 ```bash
 $ ps -p 12454 -o %cpu 
@@ -91,7 +87,7 @@ $ ps -p 12454 -o %cpu
 17.0
 ```
 
-Wait! we have 4 cores and our process fully utilizes one core at least that's what we asssume so shouldn't utilization be closer to 25%? lets check the manual on `ps` the man page says: `CPU usage is currently expressed as the	percentage of time spent running during the entire lifetime of a	process. This is not ideal, and	it does	not conform	to the standards that ps otherwise conforms to.	CPU usage is unlikely to add up to exactly 100%.`.  this can explain it, but we can verify this, there are more methods to check for cpu utilization.  As we mentioned earlier we always prefer to use the standard tools, lets use docker stanard tool for cpu utilization measurment:
+Wait! we have 4 cores and our process fully utilizes one core at least that's what we assume.  Shouldn't utilization be closer to 25%? lets check the manual on `ps` the man page says: `CPU usage is currently expressed as the percentage of time spent running during the entire lifetime of a process. This is not ideal, and it does not conform to the standards that ps otherwise conforms to.  CPU usage is unlikely to add up to exactly 100%.`.  this can explain it, but we can verify this, there are more methods to check for cpu utilization.  As we mentioned earlier we always prefer to use the standard tools, lets use docker standard tool for cpu utilization measurement.
 
 We are going to first utilize docker commands for inspecting the cpu:
 
@@ -106,7 +102,7 @@ CONTAINER           CPU %               MEM USAGE / LIMIT     MEM %             
 single-cpu-killer   97.90%              413.7 kB / 16.52 GB   0.00%               3.882 kB / 648 B    0 B / 0 B
 ```
 
-so though we have 4 cores the docker stats for that docker process shown close to `100%` utilization which makes sense because it treats that process as the only process.
+So though we have 4 cores the docker stats for that docker process shown close to `100%` utilization which makes sense because it treats that process as the only process.
 
 if we want to see how actually the `docker stat` calculates the `cpu usage percentage` we should have a look at `docker client` sources at `stats.go`
 
@@ -127,7 +123,7 @@ cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(previousCPU)
 systemDelta = float64(v.CPUStats.SystemUsage) - float64(previousSystem)
 ```
 
-Note that the `systemCPU` here is not the system cpu as used by the container, but the total machine system cpu delta.  While the cpuDelta is the `container` cpu delta for the container.  This means we can divie the `containerCPU` which is `totalUsage` diff by the `systemCPU` which is the total diff and this is exactly what is done at: **(cpuDelta / systemDelta)** see the following `calculateCPUPercent` which takes as argument `prevCPU` as used by container `previousSystem` total system cpu and current cpu usages at `v`:
+Note that the `systemCPU` here is not the system cpu as used by the container, but the total machine system cpu delta.  While the cpuDelta is the `container` cpu delta for the container.  This means we can divide the `containerCPU` which is `totalUsage` diff by the `systemCPU` which is the total diff and this is exactly what is done at: (cpuDelta / systemDelta) see the following `calculateCPUPercent` which takes as argument `prevCPU` as used by container `previousSystem` total system cpu and current cpu usages at `v`:
 
 ```go
 func calculateCPUPercent(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
@@ -231,6 +227,4 @@ and we get back all the cpu information with json:
 "memory_stats":
 ```
 
-We can see that we can get both cpu and memory (and additional) metrics for our docker container by connecting to the docker remote api.  The results are parsable which is great as we can pinpoint the information we need for presentation in monitoring components.
-
-.
+We can see that we can get both cpu and memory (and additional) metrics for our docker container by connecting to the docker remote api.  The results are parsable which is great as we can pinpoint the information we need for presentation in monitoring components.  And this is the method we adopt for monitoring containers cpu.  We haven't fully discussed what does machine `cpu` means (if it means..) and what should we do in cases we have to run local commands on hosts, we are going to leave that for future posts.
