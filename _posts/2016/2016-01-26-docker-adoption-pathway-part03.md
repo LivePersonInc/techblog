@@ -13,9 +13,13 @@ published: false
 
 A `container` as it's name promises is a self container application to get deployed and run.  This raises a question, if its self contained how would configuration which by it's nature is an external dynamic input to the container be encapsulated and shipped into the container to change its behaviour?  As always there is no one magical bullet to achieve that.  In this post we will scan our options discussing when should we use each option.
 
-First off let's discuss which app types configuration we have, in general we can divide configuration types to:
+First off let's discuss which configuration layers we have, in general we can divide configuration layers to:
 
-1. 
+1. app-config - your specific application configuration it could be the local folder to store cache, connection pool size, etc.
+1. app-infra-config - usually you app relies on another server, such as `nodejs` / `nginx` / ... this configuration refers to layer just below your app such as `nginx.conf`
+1. orchestrator config - `kubernetes` / `docker swarm` configuration, in the older `puppet` world this could also be `puppet` configurations, templates.
+1. infra/os config - your actual operation system configuration, example `ulimit`
+1. network config - the network architecture of your cluster including `VIP` and load balancing.
 
 for minimal configuration like one parameter pass it as argument, for a few more pass them as environment variable, always prefer to have convention for example if you use some cassandra host simply refer to DNS CASSANDRA in dev would be the right one in prod the right one.  For more complex configuration consider storing them in some kind of database or in volume files.  At first you see you have `yaml` files to define your `service` and `rc`.  But what if you need replication factor of one kind in one env and in another env a different `replication factor`?  You either end up with multiple duplicated `yaml` files or you `hack` something out.  The current recommended solution is to use `jinja2` as a templating tool so when you pass the `yaml` files for `kubernetes` to digest you have a few more `parameter` files *all under revision control ofcourse*.  You use the `diff` files as input to the `yaml` files so that you can run kubernetes on each env with its own specialized files. 
 
