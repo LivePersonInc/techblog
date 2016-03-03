@@ -24,4 +24,4 @@ In addition where do you store those `yaml` configuration file? answer - your ve
 In addition what about your `app` configuration files? you might need also a different configuration file per `env`.  Ofcourse you should prefer `convetion over configuration` and if you still have a small set of configurations to pass to your app you can pass them through environment parameters or you can fetch them from a network storage like a `database`.  But what happens in the cases you still have local configuration files to configure for your app?  You should find some technique to `plant` those configuration files when your container is installed.  most probably via `volume` mounting.  You can mount the volume as a [gitRepo-volume](https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/volumes.md#gitrepo), this means you store your configuration and manage their revisions in git repository.  Note that if you still have multiple configurations per multiple envs you need to utilize [jinja-templating][jinja-link]
  
 resources:
-https://dantehranian.wordpress.com/2015/03/25/how-should-i-get-application-configuration-into-my-docker-containers/
+see links
