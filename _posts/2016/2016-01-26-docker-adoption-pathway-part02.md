@@ -74,7 +74,7 @@ Run it, and allow it to run only on a single core:
 $ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" looper
 ```
 
-As we know, our docker container is a process. Let's search for it in the list of processes:
+In our case the docker container runs a single process. Let's search for it in the list of processes:
 
 ```bash
 $ ps -ef | grep looper.sh
@@ -89,7 +89,7 @@ $ ps -p 12454 -o %cpu
 17.0
 ```
 
-Wait! We have four cores and our process fully utilizes one core; at least that's what we assume. Shouldn't utilization be closer to 25%? Lets check the manual on `ps.` The main page says: `CPU usage is currently expressed as the percentage of time spent running during the entire lifetime of a process. This is not ideal, and it does not conform to the standards that ps otherwise conforms to. CPU usage is unlikely to add up to exactly 100%.` This can explain it, but we want to verify it. There are more methods to check for cpu utilization. As we mentioned earlier, we always prefer to use the standard tools. Let’s use the docker standard tool for cpu utilization measurement.
+Wait! We have four cores and our process fully utilizes one core; at least that's what we assume. Shouldn't utilization be closer to 25%? Lets check the manual on `ps.` The man page says: `CPU usage is currently expressed as the percentage of time spent running during the entire lifetime of a process. This is not ideal, and it does not conform to the standards that ps otherwise conforms to. CPU usage is unlikely to add up to exactly 100%.` This can explain it, but we want to verify it. There are more methods to check for cpu utilization. As we mentioned earlier, we always prefer to use the standard tools. Let’s use the docker standard tool for cpu utilization measurement.
 
 We are going to first utilize docker commands for inspecting the cpu:
 
@@ -146,9 +146,9 @@ func calculateCPUPercent(previousCPU, previousSystem uint64, v *types.StatsJSON)
 
 As we might have multiple `cores,` we need to multiply by PercpuUsage and then convert to a percentage by multiplying by 100.0.
 
-On the backend, how is this cpu data being interpreted?  The docker uses `cgroups` (`control groups`) to control process resources. It controls `CPU, memory, diskIO, network, etc., for process groups.
+On the backend, how is this cpu data being interpreted?  The docker uses `cgroups` (`control groups`) to control process resources. It controls `CPU, memory, diskIO, network., for process groups.
 
-For example, when we ask docker to provide only `50%` of the cpu by using `--cpu-quota="50000"` we actually update the cpu_quota in cgroups: 
+For example, when we ask docker to provide only `50%` of the cpu by using `--cpu-quota="50000"` we actually update the cpu_quota in processes cgroup: 
 
 ```bash
 $ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" --cpu-quota="50000" looper
@@ -161,14 +161,14 @@ CONTAINER           CPU %               MEM USAGE / LIMIT     MEM %             
 c376f04ad25a        48.69%              3.981 MB / 16.52 GB   0.02%               10.21 kB / 648 B    10.84 MB / 0 B
 ```
 
-…and the way the docker has achieved that is by updating the `cpu.cfs_quota_us` for that process
+…and the way the docker has achieved that is by updating the `cpu.cfs_quota_us` for that process group
 
 ```bash
 cat /sys/fs/cgroup/cpu/docker/c376f04ad25aaa54eec4f2afe63579127bd836a392ef9b4d2b153d47bd5adc62/cpu.cfs_quota_us 
 50000
 ```
 
-Let's locate our container in `cgroups`
+Let's find the cgroup to which the process belongs:
 
 ```bash
 $ docker ps
@@ -230,4 +230,5 @@ $ echo -ne "GET /containers/single-cpu-killer/stats HTTP/1.1\r\n\r\n" | sudo nc 
 ```
 
 In conclusion, by this example we see that we can get both cpu and memory along with additional metrics for our docker container by connecting to the docker remote API. The results are parsable, which is significant as we can pinpoint the information we need to present in monitoring components. This is the method we adopt for monitoring container cpu. We haven't fully discussed the meaning of machine `cpu` and what we should do in cases where we have to run local commands on hosts. We will leave this topic for future posts.
+
 
