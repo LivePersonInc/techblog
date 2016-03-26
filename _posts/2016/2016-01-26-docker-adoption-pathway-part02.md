@@ -9,17 +9,17 @@ published: true
 ---
 **Introduction**
 
-In Docker Adoption Pathway, Part 1 [part 1](http://livepersoninc.github.io/techblog/docker-adoption-pathway-part01.html), we covered the topic of  `containers` adoption, we checked our readiness for `immutable deployments,` and we examined the effect on current deployment tools that are already in place. To recap, converting new services in new environments for containers is very different from converting existing or new services with existing environments including deployment methodologies and troubleshooting procedures; with the latter including much more effort. In Part 2 of our series, we are going to see how troubleshooting changes when we adopt `containerized` environments.
+In Docker Adoption Pathway, [Part 1](http://livepersoninc.github.io/techblog/docker-adoption-pathway-part01.html), we covered the topic of  `containers` adoption, we checked our readiness for `immutable deployments`, and we examined the effect on current deployment tools that are already in place. To recap, converting new services in new environments for containers is very different from converting existing or new services with existing environments including deployment methodologies and troubleshooting procedures; with the latter including much more effort. In Part 2 of our series, we are going to see how troubleshooting changes when we adopt `containerized` environments.
 
 **Troubleshooting in Containerized Environments** 
 
 **Troubleshooting Remotely**
 
-Today, most troubleshooting is done remotely, meaning you generally do not access the hosts locally. Tools such as **`Graphite,` `ELK,` and `New Relic`** are common remote troubleshooting tools. In addition, companies develop custom in-house tools that send information from local machines to remote servers, and then users view the results with various clients. We are comfortable with the fact that instead of accessing servers directly we find the information we need remotely. This `realtime remote troubleshooting` methodology stays the same.
+Today, most troubleshooting is done remotely, meaning you generally do not access the hosts locally. Tools such as **`Graphite`, `ELK`, and `New Relic`** are common remote troubleshooting tools. In addition, companies develop custom in-house tools that send information from local machines to remote servers, and then users view the results with various clients. We are comfortable with the fact that instead of accessing servers directly we find the information we need remotely. This `realtime remote troubleshooting` methodology stays the same.
 
 **When You Can't Troubleshoot Remotely** 
 
-There are cases when you find you need to access your servers and run various troubleshooting commands locally, such as: `uptime,` `ps,` `lsof,` `tcpdump,` `dmesg,` and `sar.`  These commands are run in order to check nodes and app health to find the root cause of the problems–also known as standard troubleshooting. In addition, you have the option to display custom web management pages on your `app` when needed, which exposes your app's internal state and data (or metrics). In `jvm` based `apps,` in addition to these web management pages, it is common to have `jmx` displayed in order to check the status of the app and manage it—that is what `jmx` was built for, after all.  
+There are cases when you find you need to access your servers and run various troubleshooting commands locally, such as: `uptime`, `ps`, `lsof`, `tcpdump`, `dmesg`, and `sar.`  These commands are run in order to check nodes and app health to find the root cause of the problems–also known as standard troubleshooting. In addition, you have the option to display custom web management pages on your `app` when needed, which exposes your app's internal state and data (or metrics). In `jvm` based `apps`, in addition to these web management pages, it is common to have `jmx` displayed in order to check the status of the app and manage it—that is what `jmx` was built for, after all.  
 
 **When You Have A `Containerized` App, Things Change** 
 
@@ -35,7 +35,7 @@ Questions to Ask:
 
 1. What does the `machine cpu` metric tell us now that we have containers starting and stopping dynamically? Is high cpu bad or does it simply mean the orchestration is managing to make good usage of our metal?
 2. How do you collect `container cpu`?
-3. With multiple ways to collect `container cpu,` is there a difference in the actual data collected? Can we get different results?
+3. With multiple ways to collect `container cpu`, is there a difference in the actual data collected? Can we get different results?
 4. Is there a parsable-friendly format for the `cpu metric` collection?
 
 We are going to work out these questions by example. First, we’ll create a `Dockerfile` that can fully stress a single cpu core:
@@ -106,7 +106,7 @@ single-cpu-killer   97.90%              413.7 kB / 16.52 GB   0.00%             
 
 Although we have four cores, the docker stats for this docker process show close to `100%` utilization, which makes sense because it treats this process as the only process.
 
-If we want to actually see how the `docker stat` calculates the `cpu usage percentage,` we should have a look at `docker client` sources at `stats.go.`
+If we want to actually see how the `docker stat` calculates the `cpu usage percentage`, we should have a look at `docker client` sources at `stats.go.`
 
 [docker client stats.go](https://github.com/docker/docker/blob/master/api/client/stats.go)
 
@@ -144,7 +144,7 @@ func calculateCPUPercent(previousCPU, previousSystem uint64, v *types.StatsJSON)
 }
 ```
 
-As we might have multiple `cores,` we need to multiply by PercpuUsage and then convert to a percentage by multiplying by 100.0.
+As we might have multiple `cores`, we need to multiply by PercpuUsage and then convert to a percentage by multiplying by 100.0.
 
 On the backend, how is this cpu data being interpreted?  The docker uses `cgroups` (`control groups`) to control process resources. It controls `CPU, memory, diskIO, network., for process groups.
 
@@ -154,7 +154,7 @@ For example, when we ask docker to provide only `50%` of the cpu by using `--cpu
 $ docker run --name="single-cpu-killer" --rm --cpuset-cpus="0" --cpu-quota="50000" looper
 ```
 
-…and if we use the standard `docker stat,` we see it is consuming `50%` of the single core:
+…and if we use the standard `docker stat`, we see it is consuming `50%` of the single core:
 
 ```bash
 CONTAINER           CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O
